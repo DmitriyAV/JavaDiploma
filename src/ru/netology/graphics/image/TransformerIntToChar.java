@@ -2,7 +2,7 @@ package ru.netology.graphics.image;
 
 
 public class TransformerIntToChar implements TextColorSchema {
-    char[] chars = {'#', '$', '@', '%', '*', '+', '-', '\''};
+    static final char[] chars = {'#', '$', '@', '%', '*', '+', '-', '\''};
     int period = 255 / chars.length;
 
     @Override
