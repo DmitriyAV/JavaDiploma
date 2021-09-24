@@ -4,6 +4,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
@@ -29,24 +30,14 @@ public class Converter implements TextGraphicsConverter {
         sourceWidth = img.getWidth();
         sourceHeight = img.getHeight();
 
-        if (getTargetRatio() > 0) {
-            setSourceRatio();
-            checkRatio();
-        }
+        checkTargetRatio();
 
         // Если конвертеру выставили максимально допустимые ширину и/или высоту,
         // вам надо по ним и по текущим высоте и ширине вычислить новые высоту
         // и ширину.
-        int newWidth;
-        int newHeight;
 
-        if (getTargetWidth() > 0) {
-            newWidth = setNewWidth();
-        } else newWidth = getSourceWidth();
-
-        if (getTargetHeight() > 0) {
-            newHeight = setNewHeight();
-        } else newHeight = getSourceHeight();
+        int newHeight = checkTargetHeight();
+        int newWidth = checkTargetWidth();
 
         // Теперь нам надо попросить картинку изменить свои размеры на новые.
         // Последний параметр означает, что мы просим картинку плавно сузиться
@@ -66,7 +57,7 @@ public class Converter implements TextGraphicsConverter {
         // Теперь в bwImg у нас лежит чёрно-белая картинка нужных нам размеров.
         // Вы можете отслеживать каждый из этапов, просто в любом удобном для
         // вас моменте сохранив промежуточную картинку в файл через:
-        //ImageIO.write(imageObject, "png", new File("out.png"));
+        ImageIO.write(bwImg, "png", new File("out.png"));
         // После вызова этой инструкции у вас в проекте появится файл картинки out.png
 
         // Теперь давайте пройдёмся по пикселям нашего изображения.
@@ -93,15 +84,18 @@ public class Converter implements TextGraphicsConverter {
         // получить степень белого пикселя (int color выше) и по ней
         // получить соответствующий символ c. Логикой превращения цвета
         // в символ будет заниматься другой объект, который мы рассмотрим ниже
-        TransformerIntToChar schema = new TransformerIntToChar();
-        char[][] charsArray = new char[newWidth][newHeight];
 
-        for (int w = 0; w < newWidth; w++) {
-            for (int h = 0; h < newHeight; h++) {
+        TransformerIntToChar schema = new TransformerIntToChar();
+        char[][] charsArray = new char[newHeight][newWidth];
+
+
+
+                for (int h = 0; h < newHeight; h++) {
+                    for (int w = 0; w < newWidth; w++) {
                 int color = bwRaster.getPixel(w, h, new int[3])[0];
                 char c = schema.convert(color);
                 //запоминаем символ c, например, в двумерном массиве или как-то ещё на ваше усмотрение
-                charsArray[w][h] = c;
+                charsArray[h][w] = c;
             }
         }
 
@@ -113,10 +107,19 @@ public class Converter implements TextGraphicsConverter {
         return printText(charsArray); // Возвращаем собранный текст.
     }
 
-    private String printText(char[][] colorChar) {
+    private int checkTargetWidth() {
+        return getTargetWidth() > 0 ? setNewWidth() : getSourceWidth();
+    }
+
+    private int checkTargetHeight() {
+        return getTargetHeight() > 0 ? setNewHeight() : getSourceHeight();
+
+    }
+
+    private String printText(char[][] color) {
         StringBuilder sb = new StringBuilder();
 
-        for (char[] value : colorChar) {
+        for (char[] value : color) {
             sb
                     .append(value)
                     .append('\n');
@@ -125,6 +128,12 @@ public class Converter implements TextGraphicsConverter {
         return sb.toString();
     }
 
+    private void checkTargetRatio() throws BadImageSizeException {
+        if (getTargetRatio() > 0) {
+            setSourceRatio();
+            checkRatio();
+        }
+    }
 
     private void setSourceRatio() {
         // TODO: 12.09.2021  если sourceRatio больше, то exception
@@ -148,10 +157,7 @@ public class Converter implements TextGraphicsConverter {
         int newWidth = 0;
         if (sourceWidth > targetWidth) {
             double ratio = (double) targetWidth / sourceWidth;
-
-            // this.sourceHeight = (int) (sourceHeight * ratio);
-            newWidth = (int) (targetWidth * ratio);
-
+            newWidth = (int) (this.sourceWidth * ratio);
         } else {
             System.out.println("Width " + sourceWidth + " is ok");
             return sourceWidth;
@@ -164,10 +170,7 @@ public class Converter implements TextGraphicsConverter {
         int newHeight = 0;
         if (sourceHeight > targetHeight) {
             double ratio = (double) targetHeight / sourceHeight;
-
-            //  this.sourceWidth = (int) (sourceWidth * ratio);
-            newHeight = (int) (targetHeight * ratio);
-
+            newHeight = (int) (this.sourceHeight * ratio);
         } else {
             System.out.println("Height " + sourceHeight + " is ok");
             return sourceHeight;
